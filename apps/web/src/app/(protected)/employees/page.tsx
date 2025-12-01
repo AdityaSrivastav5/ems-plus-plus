@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client';
+import { useQuery, useMutation } from '@apollo/client/react/hooks';
 import { gql } from '@apollo/client/core';
 import { PlusIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import toast, { Toaster } from 'react-hot-toast';
