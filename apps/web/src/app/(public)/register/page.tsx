@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { useMutation, gql } from '@apollo/client';
+import { useMutation, gql } from '@/lib/apollo-hooks';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import toast, { Toaster } from 'react-hot-toast';
