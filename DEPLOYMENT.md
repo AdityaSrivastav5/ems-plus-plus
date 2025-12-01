@@ -111,11 +111,13 @@ You need to deploy **11 services** individually. Here's the complete list with p
    - **Name**: `ems-gateway`
    - **Region**: Choose closest to you
    - **Branch**: `main`
-   - **Root Directory**: `apps/gateway`
+   - **Root Directory**: Leave **BLANK** (or set to `.`)
    - **Runtime**: `Node`
-   - **Build Command**: `npm install`
-   - **Start Command**: `node index.js`
+   - **Build Command**: `npm install && cd apps/gateway && npm install`
+   - **Start Command**: `cd apps/gateway && node index.js`
    - **Instance Type**: Free
+   
+   > ⚠️ **Important**: Leave Root Directory blank to ensure shared packages are accessible!
 
 3. **Environment Variables**
    Click "Advanced" → "Add Environment Variable"
@@ -124,8 +126,8 @@ You need to deploy **11 services** individually. Here's the complete list with p
    ```
    NODE_ENV=production
    PORT=10000
-   MONGODB_URI=mongodb+srv://emsadmin:yourpassword@cluster0.xxxxx.mongodb.net/ems?retryWrites=true&w=majority
-   REDIS_URL=redis://default:yourredispassword@region.upstash.io:6379
+   MONGODB_URI=mongodb+srv://adityasrivastav863:iamaditya05@cluster0.svxvssj.mongodb.net/?appName=Cluster0
+   REDIS_URL=redis://default:AZSKAAIncDI5MDBkY2M3NTdmNzc0NmQwOTUxZWZkZjBjNDM4NDhjMHAyMzgwMjY@stable-guppy-38026.upstash.io:6379
    ```
 
 4. **Deploy**
@@ -133,12 +135,26 @@ You need to deploy **11 services** individually. Here's the complete list with p
    - Wait for deployment (5-10 minutes)
    - Note the service URL: `https://ems-gateway.onrender.com`
 
-#### 2. Repeat for All Other Services
+#### 2. Service-Specific Build Commands
 
-For each service, follow the same steps but change:
-- **Name**: `ems-auth-service`, `ems-employee-service`, etc.
-- **Root Directory**: `services/auth-service`, `services/employee-service`, etc.
-- **Environment Variables**: Same for all services
+For each service, use these exact commands:
+
+| Service | Build Command | Start Command |
+|---------|---------------|---------------|
+| Gateway | `npm install && cd apps/gateway && npm install` | `cd apps/gateway && node index.js` |
+| Auth | `npm install && cd services/auth-service && npm install` | `cd services/auth-service && node index.js` |
+| RBAC | `npm install && cd services/rbac-service && npm install` | `cd services/rbac-service && node index.js` |
+| Org | `npm install && cd services/org-service && npm install` | `cd services/org-service && node index.js` |
+| Employee | `npm install && cd services/employee-service && npm install` | `cd services/employee-service && node index.js` |
+| Attendance | `npm install && cd services/attendance-service && npm install` | `cd services/attendance-service && node index.js` |
+| Leave | `npm install && cd services/leave-service && npm install` | `cd services/leave-service && node index.js` |
+| CRM | `npm install && cd services/crm-service && npm install` | `cd services/crm-service && node index.js` |
+| Payroll | `npm install && cd services/payroll-service && npm install` | `cd services/payroll-service && node index.js` |
+| Asset | `npm install && cd services/asset-service && npm install` | `cd services/asset-service && node index.js` |
+| Notification | `npm install && cd services/notification-service && npm install` | `cd services/notification-service && node index.js` |
+| Documents | `npm install && cd services/documents-service && npm install` | `cd services/documents-service && node index.js` |
+
+**Remember**: Leave **Root Directory BLANK** for all services!
 
 **Complete Environment Variables for All Services:**
 ```bash
