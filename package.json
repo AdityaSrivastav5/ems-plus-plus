@@ -10,18 +10,18 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "build:gateway": "cd apps/gateway && npm install",
-    "build:auth": "cd services/auth-service && npm install",
-    "build:rbac": "cd services/rbac-service && npm install",
-    "build:org": "cd services/org-service && npm install",
-    "build:employee": "cd services/employee-service && npm install",
-    "build:attendance": "cd services/attendance-service && npm install",
-    "build:leave": "cd services/leave-service && npm install",
-    "build:crm": "cd services/crm-service && npm install",
-    "build:payroll": "cd services/payroll-service && npm install",
-    "build:asset": "cd services/asset-service && npm install",
-    "build:notification": "cd services/notification-service && npm install",
-    "build:documents": "cd services/documents-service && npm install"
+    "install:gateway": "npm install --workspace=apps/gateway",
+    "install:auth": "npm install --workspace=services/auth-service",
+    "install:rbac": "npm install --workspace=services/rbac-service",
+    "install:org": "npm install --workspace=services/org-service",
+    "install:employee": "npm install --workspace=services/employee-service",
+    "install:attendance": "npm install --workspace=services/attendance-service",
+    "install:leave": "npm install --workspace=services/leave-service",
+    "install:crm": "npm install --workspace=services/crm-service",
+    "install:payroll": "npm install --workspace=services/payroll-service",
+    "install:asset": "npm install --workspace=services/asset-service",
+    "install:notification": "npm install --workspace=services/notification-service",
+    "install:documents": "npm install --workspace=services/documents-service"
   },
   "devDependencies": {
     "turbo": "^2.3.3"

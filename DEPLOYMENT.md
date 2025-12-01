@@ -113,7 +113,7 @@ You need to deploy **11 services** individually. Here's the complete list with p
    - **Branch**: `main`
    - **Root Directory**: Leave **BLANK** (or set to `.`)
    - **Runtime**: `Node`
-   - **Build Command**: `npm install && npm run build:gateway`
+   - **Build Command**: `npm install && npm run install:gateway`
    - **Start Command**: `cd apps/gateway && node index.js`
    - **Instance Type**: Free
    
@@ -141,18 +141,18 @@ For each service, use these exact commands:
 
 | Service | Build Command | Start Command |
 |---------|---------------|---------------|
-| Gateway | `npm install && npm run build:gateway` | `cd apps/gateway && node index.js` |
-| Auth | `npm install && npm run build:auth` | `cd services/auth-service && node index.js` |
-| RBAC | `npm install && npm run build:rbac` | `cd services/rbac-service && node index.js` |
-| Org | `npm install && npm run build:org` | `cd services/org-service && node index.js` |
-| Employee | `npm install && npm run build:employee` | `cd services/employee-service && node index.js` |
-| Attendance | `npm install && npm run build:attendance` | `cd services/attendance-service && node index.js` |
-| Leave | `npm install && npm run build:leave` | `cd services/leave-service && node index.js` |
-| CRM | `npm install && npm run build:crm` | `cd services/crm-service && node index.js` |
-| Payroll | `npm install && npm run build:payroll` | `cd services/payroll-service && node index.js` |
-| Asset | `npm install && npm run build:asset` | `cd services/asset-service && node index.js` |
-| Notification | `npm install && npm run build:notification` | `cd services/notification-service && node index.js` |
-| Documents | `npm install && npm run build:documents` | `cd services/documents-service && node index.js` |
+| Gateway | `npm install && npm run install:gateway` | `cd apps/gateway && node index.js` |
+| Auth | `npm install && npm run install:auth` | `cd services/auth-service && node index.js` |
+| RBAC | `npm install && npm run install:rbac` | `cd services/rbac-service && node index.js` |
+| Org | `npm install && npm run install:org` | `cd services/org-service && node index.js` |
+| Employee | `npm install && npm run install:employee` | `cd services/employee-service && node index.js` |
+| Attendance | `npm install && npm run install:attendance` | `cd services/attendance-service && node index.js` |
+| Leave | `npm install && npm run install:leave` | `cd services/leave-service && node index.js` |
+| CRM | `npm install && npm run install:crm` | `cd services/crm-service && node index.js` |
+| Payroll | `npm install && npm run install:payroll` | `cd services/payroll-service && node index.js` |
+| Asset | `npm install && npm run install:asset` | `cd services/asset-service && node index.js` |
+| Notification | `npm install && npm run install:notification` | `cd services/notification-service && node index.js` |
+| Documents | `npm install && npm run install:documents` | `cd services/documents-service && node index.js` |
 
 **Remember**: Leave **Root Directory BLANK** for all services!
 
