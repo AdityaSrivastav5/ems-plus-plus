@@ -1,36 +1,36 @@
 "use client";
 
-import { ApolloClient, InMemoryCache, HttpLink, ApolloLink } from "@apollo/client";
-import { setContext } from "@apollo/client/link/context";
-import { ApolloProvider } from "@apollo/client/react";
+import { ApolloLink, HttpLink } from "@apollo/client";
+import {
+  ApolloNextAppProvider,
+  NextSSRInMemoryCache,
+  NextSSRApolloClient,
+  SSRMultipartLink,
+} from "@apollo/experimental-nextjs-app-support/ssr";
 
-const httpLink = new HttpLink({
-  uri: process.env.NEXT_PUBLIC_GRAPHQL_URL || "http://localhost:4000/graphql",
-});
+function makeClient() {
+  const httpLink = new HttpLink({
+    uri: process.env.NEXT_PUBLIC_GRAPHQL_URL || "http://localhost:4000/graphql",
+  });
 
-const authLink = setContext((_, { headers }) => {
-  // get the authentication token from local storage if it exists
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
-  const orgId = typeof window !== 'undefined' ? localStorage.getItem('currentOrgId') : '';
-  
-  return {
-    headers: {
-      ...headers,
-      authorization: token ? `Bearer ${token}` : "",
-      "x-org-id": orgId || "",
-    }
-  }
-});
+  return new NextSSRApolloClient({
+    cache: new NextSSRInMemoryCache(),
+    link:
+      typeof window === "undefined"
+        ? ApolloLink.from([
+            new SSRMultipartLink({
+              stripDefer: true,
+            }),
+            httpLink,
+          ])
+        : httpLink,
+  });
+}
 
-const client = new ApolloClient({
-  link: authLink.concat(httpLink),
-  cache: new InMemoryCache(),
-});
-
-export function ApolloWrapper({ children }: { children: React.ReactNode }) {
+export function ApolloWrapper({ children }: React.PropsWithChildren) {
   return (
-    <ApolloProvider client={client}>
+    <ApolloNextAppProvider makeClient={makeClient}>
       {children}
-    </ApolloProvider>
+    </ApolloNextAppProvider>
   );
 }
