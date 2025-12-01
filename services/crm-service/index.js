@@ -7,18 +7,23 @@ const config = require('@ems/config');
 const leadSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true },
-  status: { type: String, default: 'NEW' },
+  phone: String,
+  company: String,
+  status: { type: String, default: 'new' }, // new, contacted, qualified, lost
   source: String,
-  orgId: String,
+  value: Number,
+  orgId: { type: String, required: true },
   createdAt: { type: Date, default: Date.now }
 });
 
 const dealSchema = new mongoose.Schema({
   title: { type: String, required: true },
   value: { type: Number, required: true },
-  stage: { type: String, required: true },
-  closeDate: String,
-  orgId: String,
+  stage: { type: String, required: true }, // prospecting, qualification, proposal, negotiation, closed-won, closed-lost
+  closeDate: Date,
+  contactName: String,
+  company: String,
+  orgId: { type: String, required: true },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -26,8 +31,9 @@ const contactSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true },
   phone: String,
-  companyId: String,
-  orgId: String,
+  company: String,
+  position: String,
+  orgId: { type: String, required: true },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -40,8 +46,12 @@ const typeDefs = gql`
     id: ID!
     name: String!
     email: String!
+    phone: String
+    company: String
     status: String!
     source: String
+    value: Float
+    createdAt: String
   }
 
   type Deal {
@@ -50,6 +60,9 @@ const typeDefs = gql`
     value: Float!
     stage: String!
     closeDate: String
+    contactName: String
+    company: String
+    createdAt: String
   }
 
   type Contact {
@@ -57,49 +70,114 @@ const typeDefs = gql`
     name: String!
     email: String!
     phone: String
-    companyId: ID
+    company: String
+    position: String
+    createdAt: String
+  }
+
+  input LeadInput {
+    name: String!
+    email: String!
+    phone: String
+    company: String
+    source: String
+    value: Float
+  }
+
+  input DealInput {
+    title: String!
+    value: Float!
+    stage: String!
+    closeDate: String
+    contactName: String
+    company: String
+  }
+
+  input ContactInput {
+    name: String!
+    email: String!
+    phone: String
+    company: String
+    position: String
   }
 
   type Query {
-    leads: [Lead]
-    deals: [Deal]
-    contacts: [Contact]
+    leads(status: String): [Lead!]!
+    lead(id: ID!): Lead
+    deals(stage: String): [Deal!]!
+    deal(id: ID!): Deal
+    contacts: [Contact!]!
+    contact(id: ID!): Contact
   }
 
   type Mutation {
-    createLead(name: String!, email: String!, source: String): Lead
-    createDeal(title: String!, value: Float!, stage: String!): Deal
-    createContact(name: String!, email: String!, phone: String): Contact
-    updateDealStage(id: ID!, stage: String!): Deal
+    createLead(input: LeadInput!): Lead!
+    updateLeadStatus(id: ID!, status: String!): Lead!
+    deleteLead(id: ID!): Boolean!
+    
+    createDeal(input: DealInput!): Deal!
+    updateDealStage(id: ID!, stage: String!): Deal!
+    deleteDeal(id: ID!): Boolean!
+    
+    createContact(input: ContactInput!): Contact!
+    deleteContact(id: ID!): Boolean!
   }
 `;
 
 const resolvers = {
   Query: {
-    leads: async () => await Lead.find(),
-    deals: async () => await Deal.find(),
-    contacts: async () => await Contact.find(),
+    leads: async (_, { status }, context) => {
+      const query = { orgId: context.orgId };
+      if (status) query.status = status;
+      return await Lead.find(query).sort({ createdAt: -1 });
+    },
+    lead: async (_, { id }) => await Lead.findById(id),
+    
+    deals: async (_, { stage }, context) => {
+      const query = { orgId: context.orgId };
+      if (stage) query.stage = stage;
+      return await Deal.find(query).sort({ createdAt: -1 });
+    },
+    deal: async (_, { id }) => await Deal.findById(id),
+    
+    contacts: async (_, __, context) => {
+      return await Contact.find({ orgId: context.orgId }).sort({ createdAt: -1 });
+    },
+    contact: async (_, { id }) => await Contact.findById(id),
   },
+  
   Mutation: {
-    createLead: async (_, { name, email, source }) => {
-      const lead = new Lead({ name, email, source, status: 'NEW' });
+    createLead: async (_, { input }, context) => {
+      const lead = new Lead({ ...input, orgId: context.orgId, status: 'new' });
       return await lead.save();
     },
-    createDeal: async (_, { title, value, stage }) => {
-      const deal = new Deal({ title, value, stage });
+    updateLeadStatus: async (_, { id, status }) => {
+      return await Lead.findByIdAndUpdate(id, { status }, { new: true });
+    },
+    deleteLead: async (_, { id }) => {
+      await Lead.findByIdAndDelete(id);
+      return true;
+    },
+    
+    createDeal: async (_, { input }, context) => {
+      const deal = new Deal({ ...input, orgId: context.orgId });
       return await deal.save();
     },
-    createContact: async (_, { name, email, phone }) => {
-      const contact = new Contact({ name, email, phone });
+    updateDealStage: async (_, { id, stage }) => {
+      return await Deal.findByIdAndUpdate(id, { stage }, { new: true });
+    },
+    deleteDeal: async (_, { id }) => {
+      await Deal.findByIdAndDelete(id);
+      return true;
+    },
+    
+    createContact: async (_, { input }, context) => {
+      const contact = new Contact({ ...input, orgId: context.orgId });
       return await contact.save();
     },
-    updateDealStage: async (_, { id, stage }) => {
-      const deal = await Deal.findById(id);
-      if (deal) {
-        deal.stage = stage;
-        return await deal.save();
-      }
-      return null;
+    deleteContact: async (_, { id }) => {
+      await Contact.findByIdAndDelete(id);
+      return true;
     },
   },
 };
@@ -108,7 +186,16 @@ async function startServer() {
   await connectDB();
   
   const app = express();
-  const server = new ApolloServer({ typeDefs, resolvers });
+  const server = new ApolloServer({ 
+    typeDefs, 
+    resolvers,
+    context: ({ req }) => {
+      const userId = req.headers['x-user-id'];
+      const orgId = req.headers['x-org-id'] || 'org-1';
+      return { userId, orgId };
+    }
+  });
+  
   await server.start();
   server.applyMiddleware({ app });
 
