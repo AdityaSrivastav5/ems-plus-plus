@@ -25,5 +25,9 @@
   },
   "devDependencies": {
     "turbo": "^2.3.3"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.2"
   }
 }

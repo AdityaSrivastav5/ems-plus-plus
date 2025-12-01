@@ -1,38 +1,60 @@
 const express = require('express');
-const { ApolloServer } = require('apollo-server-express');
-const { typeDefs } = require('@ems/graphql-schema'); // Placeholder
+const { ApolloServer, gql } = require('apollo-server-express');
+const { verifyToken, extractToken } = require('@ems/shared-lib/auth');
 const config = require('@ems/config');
+
+const typeDefs = gql`
+  type Query {
+    hello: String
+  }
+`;
+
+const resolvers = {
+  Query: {
+    hello: () => 'Hello from Gateway!',
+  },
+};
 
 async function startServer() {
   const app = express();
   
-  // Placeholder resolver
-  const resolvers = {
-    Query: {
-      _empty: () => 'EMS Gateway',
-    },
-  };
-
-  const server = new ApolloServer({
-    typeDefs,
+  const server = new ApolloServer({ 
+    typeDefs, 
     resolvers,
     context: ({ req }) => {
-      // In a real app, verify JWT here.
-      // For now, we simulate extraction.
-      const token = req.headers.authorization || '';
-      const orgId = req.headers['x-org-id'] || '';
+      // Extract token from Authorization header
+      const token = extractToken(req.headers.authorization);
       
-      // Mock user extraction from token
-      const userId = token ? 'mock-user-1' : null;
-
-      return { userId, orgId, headers: req.headers };
-    },
+      // Verify token and extract user info
+      let userId = null;
+      let userEmail = null;
+      
+      if (token) {
+        const decoded = verifyToken(token);
+        if (decoded) {
+          userId = decoded.userId;
+          userEmail = decoded.email;
+        }
+      }
+      
+      // Get orgId from header
+      const orgId = req.headers['x-org-id'];
+      
+      return {
+        userId,
+        userEmail,
+        orgId,
+        headers: req.headers
+      };
+    }
   });
+  
   await server.start();
   server.applyMiddleware({ app });
 
-  app.listen(config.PORT || 4000, () => {
-    console.log(`Gateway ready at http://localhost:${config.PORT || 4000}${server.graphqlPath}`);
+  const PORT = config.PORT || 4000;
+  app.listen(PORT, () => {
+    console.log(`Gateway ready at http://localhost:${PORT}${server.graphqlPath}`);
   });
 }
 
