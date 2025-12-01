@@ -3,6 +3,7 @@
     "version": "0.0.0",
     "main": "./index.js",
     "dependencies": {
-        "graphql": "^16.0.0"
+        "graphql": "^16.0.0",
+        "graphql-tag": "^2.12.6"
     }
 }
