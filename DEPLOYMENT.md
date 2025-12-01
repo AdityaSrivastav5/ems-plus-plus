@@ -1,70 +1,308 @@
-# Deployment Guide
+# Complete Deployment Guide for EMS++
 
-This guide outlines the steps to deploy the EMS++ platform. The backend microservices will be deployed on **Render**, and the frontend will be deployed on **Vercel**.
+This comprehensive guide will walk you through deploying all 11 backend services on Render and the frontend on Vercel.
+
+## Table of Contents
+1. [Prerequisites](#prerequisites)
+2. [Database Setup](#database-setup)
+3. [Backend Deployment (Render)](#backend-deployment-render)
+4. [Frontend Deployment (Vercel)](#frontend-deployment-vercel)
+5. [Post-Deployment Configuration](#post-deployment-configuration)
+
+---
 
 ## Prerequisites
 
-- GitHub Repository with the project code.
-- Account on [Render](https://render.com).
-- Account on [Vercel](https://vercel.com).
-- **MongoDB Atlas** account (free tier available).
-- Redis Instance (can be provisioned on Upstash).
+Before starting, ensure you have:
+- ✅ GitHub account with your code pushed to a repository
+- ✅ [Render](https://render.com) account (free tier available)
+- ✅ [Vercel](https://vercel.com) account (free tier available)
+- ✅ [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) account (free tier available)
+- ✅ [Upstash](https://upstash.com) account for Redis (free tier available)
 
-## Part 1: Database Setup
+---
 
-### MongoDB Atlas
-1.  Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) and create a free cluster.
-2.  Create a database user with a password.
-3.  Whitelist your IP address (or use `0.0.0.0/0` for development).
-4.  Get your **Connection String** (it will look like: `mongodb+srv://username:password@cluster.mongodb.net/ems?retryWrites=true&w=majority`).
-5.  Note this connection string as `MONGODB_URI`.
+## Database Setup
 
-### Redis (Upstash)
-1.  Go to [Upstash](https://upstash.com) and create a Redis database.
-2.  Note the `REDIS_URL`.
+### Step 1: MongoDB Atlas Setup
 
-## Part 2: Backend Deployment (Render)
+1. **Create Cluster**
+   - Go to [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+   - Click "Build a Database"
+   - Choose "FREE" (M0 Sandbox)
+   - Select your preferred cloud provider and region
+   - Click "Create Cluster"
 
-Since we have a monorepo with multiple services, we will deploy each service as a separate Web Service on Render.
+2. **Create Database User**
+   - Go to "Database Access" in the left sidebar
+   - Click "Add New Database User"
+   - Choose "Password" authentication
+   - Username: `emsadmin` (or your choice)
+   - Password: Generate a secure password (save this!)
+   - Database User Privileges: "Read and write to any database"
+   - Click "Add User"
 
-### Deploying Services
-For **EACH** service (`gateway`, `auth-service`, `employee-service`, etc.), follow these steps:
+3. **Whitelist IP Addresses**
+   - Go to "Network Access" in the left sidebar
+   - Click "Add IP Address"
+   - Click "Allow Access from Anywhere" (0.0.0.0/0)
+   - ⚠️ **Note**: For production, restrict to specific IPs
+   - Click "Confirm"
 
-1.  Click **New +** -> **Web Service**.
-2.  Connect your GitHub repository.
-3.  **Name**: e.g., `ems-gateway`, `ems-employee-service`.
-4.  **Root Directory**:
-    - For Gateway: `apps/gateway`
-    - For Services: `services/employee-service` (change accordingly)
-5.  **Environment**: `Node`
-6.  **Build Command**: `npm install`
-7.  **Start Command**: `node index.js`
-8.  **Environment Variables**:
-    - `NODE_ENV`: `production`
-    - `MONGODB_URI`: Your MongoDB Atlas connection string.
-    - `REDIS_URL`: Your Redis connection string.
-    - `PORT`: `10000` (Render default) or match your config.
+4. **Get Connection String**
+   - Go to "Database" in the left sidebar
+   - Click "Connect" on your cluster
+   - Choose "Connect your application"
+   - Copy the connection string:
+     ```
+     mongodb+srv://emsadmin:<password>@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
+     ```
+   - Replace `<password>` with your actual password
+   - Add database name: `mongodb+srv://emsadmin:yourpassword@cluster0.xxxxx.mongodb.net/ems?retryWrites=true&w=majority`
+   - **Save this as your `MONGODB_URI`**
 
-### Service URLs
-Once deployed, note the URL for each service (e.g., `https://ems-gateway.onrender.com`).
+### Step 2: Redis Setup (Upstash)
 
-## Part 3: Frontend Deployment (Vercel)
+1. **Create Redis Database**
+   - Go to [Upstash Console](https://console.upstash.com)
+   - Click "Create Database"
+   - Name: `ems-redis`
+   - Type: Regional
+   - Region: Choose closest to your Render region
+   - Click "Create"
 
-1.  Go to the Vercel Dashboard and click **Add New...** -> **Project**.
-2.  Import your GitHub repository.
-3.  **Framework Preset**: Next.js.
-4.  **Root Directory**: Click `Edit` and select `apps/web`.
-5.  **Environment Variables**:
-    - `NEXT_PUBLIC_GRAPHQL_URL`: The URL of your deployed Gateway (e.g., `https://ems-gateway.onrender.com/graphql`).
-6.  Click **Deploy**.
+2. **Get Connection String**
+   - Click on your database
+   - Copy the "Redis URL" (starts with `redis://`)
+   - **Save this as your `REDIS_URL`**
 
-## Part 4: Final Configuration
+---
 
-1.  **Gateway Configuration**: Ensure your Gateway knows where the downstream services are. You might need to update your Gateway code to accept service URLs via environment variables if it currently hardcodes `localhost`.
-2.  **CORS**: Ensure your Gateway allows CORS requests from your Vercel frontend domain.
+## Backend Deployment (Render)
+
+You need to deploy **11 services** individually. Here's the complete list with ports:
+
+| Service | Port | Root Directory |
+|---------|------|----------------|
+| Gateway | 4000 | `apps/gateway` |
+| Auth Service | 4001 | `services/auth-service` |
+| RBAC Service | 4002 | `services/rbac-service` |
+| Org Service | 4003 | `services/org-service` |
+| Employee Service | 4004 | `services/employee-service` |
+| Attendance Service | 4005 | `services/attendance-service` |
+| Leave Service | 4006 | `services/leave-service` |
+| CRM Service | 4007 | `services/crm-service` |
+| Payroll Service | 4008 | `services/payroll-service` |
+| Asset Service | 4009 | `services/asset-service` |
+| Notification Service | 4010 | `services/notification-service` |
+| Documents Service | 4011 | `services/documents-service` |
+
+### Deployment Steps (Repeat for Each Service)
+
+#### 1. Gateway Service (Example - Repeat for all)
+
+1. **Create Web Service**
+   - Go to [Render Dashboard](https://dashboard.render.com)
+   - Click "New +" → "Web Service"
+   - Connect your GitHub repository
+   - Click "Connect" next to your `ems-plus-plus` repo
+
+2. **Configure Service**
+   - **Name**: `ems-gateway`
+   - **Region**: Choose closest to you
+   - **Branch**: `main`
+   - **Root Directory**: `apps/gateway`
+   - **Runtime**: `Node`
+   - **Build Command**: `npm install`
+   - **Start Command**: `node index.js`
+   - **Instance Type**: Free
+
+3. **Environment Variables**
+   Click "Advanced" → "Add Environment Variable"
+   
+   Add these variables:
+   ```
+   NODE_ENV=production
+   PORT=10000
+   MONGODB_URI=mongodb+srv://emsadmin:yourpassword@cluster0.xxxxx.mongodb.net/ems?retryWrites=true&w=majority
+   REDIS_URL=redis://default:yourredispassword@region.upstash.io:6379
+   ```
+
+4. **Deploy**
+   - Click "Create Web Service"
+   - Wait for deployment (5-10 minutes)
+   - Note the service URL: `https://ems-gateway.onrender.com`
+
+#### 2. Repeat for All Other Services
+
+For each service, follow the same steps but change:
+- **Name**: `ems-auth-service`, `ems-employee-service`, etc.
+- **Root Directory**: `services/auth-service`, `services/employee-service`, etc.
+- **Environment Variables**: Same for all services
+
+**Complete Environment Variables for All Services:**
+```bash
+NODE_ENV=production
+PORT=10000
+MONGODB_URI=mongodb+srv://emsadmin:yourpassword@cluster0.xxxxx.mongodb.net/ems?retryWrites=true&w=majority
+REDIS_URL=redis://default:yourredispassword@region.upstash.io:6379
+```
+
+### Service URLs After Deployment
+
+After deploying all services, you'll have these URLs:
+```
+Gateway:        https://ems-gateway.onrender.com
+Auth:           https://ems-auth-service.onrender.com
+RBAC:           https://ems-rbac-service.onrender.com
+Org:            https://ems-org-service.onrender.com
+Employee:       https://ems-employee-service.onrender.com
+Attendance:     https://ems-attendance-service.onrender.com
+Leave:          https://ems-leave-service.onrender.com
+CRM:            https://ems-crm-service.onrender.com
+Payroll:        https://ems-payroll-service.onrender.com
+Asset:          https://ems-asset-service.onrender.com
+Notification:   https://ems-notification-service.onrender.com
+Documents:      https://ems-documents-service.onrender.com
+```
+
+---
+
+## Frontend Deployment (Vercel)
+
+### Step 1: Deploy to Vercel
+
+1. **Import Project**
+   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
+   - Click "Add New..." → "Project"
+   - Click "Import" next to your GitHub repository
+
+2. **Configure Project**
+   - **Framework Preset**: Next.js (auto-detected)
+   - **Root Directory**: Click "Edit" → Select `apps/web`
+   - **Build Command**: `npm run build` (auto-filled)
+   - **Output Directory**: `.next` (auto-filled)
+
+3. **Environment Variables**
+   Click "Environment Variables" and add:
+   ```
+   NEXT_PUBLIC_GRAPHQL_URL=https://ems-gateway.onrender.com/graphql
+   ```
+
+4. **Deploy**
+   - Click "Deploy"
+   - Wait for deployment (2-5 minutes)
+   - Your app will be live at: `https://your-project.vercel.app`
+
+---
+
+## Post-Deployment Configuration
+
+### 1. Enable CORS on Gateway
+
+Update `apps/gateway/index.js` to allow CORS from your Vercel domain:
+
+```javascript
+const cors = require('cors');
+
+app.use(cors({
+  origin: ['https://your-project.vercel.app', 'http://localhost:3000'],
+  credentials: true
+}));
+```
+
+Redeploy the gateway service.
+
+### 2. Test Your Deployment
+
+1. **Test Gateway**
+   - Visit: `https://ems-gateway.onrender.com/graphql`
+   - You should see the GraphQL Playground
+
+2. **Test Frontend**
+   - Visit: `https://your-project.vercel.app`
+   - Try logging in (mock auth)
+   - Navigate through different pages
+
+### 3. Monitor Services
+
+- **Render**: Check logs in the Render dashboard for each service
+- **Vercel**: Check deployment logs and runtime logs
+- **MongoDB Atlas**: Monitor database connections in the Atlas dashboard
+
+---
 
 ## Troubleshooting
 
-- **Build Failures**: Check the logs. Ensure all shared packages (`@ems/config`, etc.) are accessible.
-- **Connection Errors**: Verify `MONGODB_URI` and `REDIS_URL` are correct and accessible from the Render region.
-- **MongoDB Connection**: Ensure your IP is whitelisted in MongoDB Atlas, or use `0.0.0.0/0` for all IPs (not recommended for production).
+### Common Issues
+
+1. **Service Won't Start**
+   - Check logs in Render dashboard
+   - Verify `MONGODB_URI` is correct
+   - Ensure `node_modules` is in `.gitignore`
+
+2. **Frontend Can't Connect to Backend**
+   - Verify `NEXT_PUBLIC_GRAPHQL_URL` is correct
+   - Check CORS settings on gateway
+   - Ensure gateway service is running
+
+3. **MongoDB Connection Failed**
+   - Verify IP whitelist includes `0.0.0.0/0`
+   - Check username/password in connection string
+   - Ensure database name is included in URI
+
+4. **Build Failures**
+   - Check that `Root Directory` is set correctly
+   - Verify `package.json` exists in the root directory
+   - Check build logs for specific errors
+
+---
+
+## Environment Variables Summary
+
+### Backend Services (All 11)
+```bash
+NODE_ENV=production
+PORT=10000
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/ems?retryWrites=true&w=majority
+REDIS_URL=redis://default:password@region.upstash.io:6379
+```
+
+### Frontend (Vercel)
+```bash
+NEXT_PUBLIC_GRAPHQL_URL=https://ems-gateway.onrender.com/graphql
+```
+
+---
+
+## Cost Breakdown (Free Tier)
+
+- **Render**: Free tier includes 750 hours/month (enough for 1-2 services always on)
+- **MongoDB Atlas**: Free M0 cluster (512MB storage)
+- **Upstash Redis**: Free tier (10,000 commands/day)
+- **Vercel**: Free tier (unlimited deployments)
+
+**Note**: With 11 services on Render free tier, services will sleep after 15 minutes of inactivity. Consider upgrading to paid plans for production use.
+
+---
+
+## Next Steps
+
+1. ✅ Set up custom domain on Vercel
+2. ✅ Configure environment-specific variables
+3. ✅ Set up monitoring and alerts
+4. ✅ Implement proper authentication (replace mock auth)
+5. ✅ Add database migrations
+6. ✅ Set up CI/CD pipelines
+
+---
+
+## Support
+
+If you encounter issues:
+- Check service logs in Render dashboard
+- Verify all environment variables are set correctly
+- Ensure MongoDB Atlas IP whitelist is configured
+- Test each service individually using GraphQL Playground
+
+Good luck with your deployment! 🚀
