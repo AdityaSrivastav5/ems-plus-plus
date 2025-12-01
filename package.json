@@ -1,20 +1,29 @@
 {
-  "name": "ems-monorepo",
+  "name": "ems-plus-plus",
+  "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
-  },
-  "devDependencies": {
-    "turbo": "latest",
-    "prettier": "latest"
-  },
-  "packageManager": "npm@10.0.0",
   "workspaces": [
     "apps/*",
     "services/*",
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "build:gateway": "cd apps/gateway && npm install",
+    "build:auth": "cd services/auth-service && npm install",
+    "build:rbac": "cd services/rbac-service && npm install",
+    "build:org": "cd services/org-service && npm install",
+    "build:employee": "cd services/employee-service && npm install",
+    "build:attendance": "cd services/attendance-service && npm install",
+    "build:leave": "cd services/leave-service && npm install",
+    "build:crm": "cd services/crm-service && npm install",
+    "build:payroll": "cd services/payroll-service && npm install",
+    "build:asset": "cd services/asset-service && npm install",
+    "build:notification": "cd services/notification-service && npm install",
+    "build:documents": "cd services/documents-service && npm install"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3"
+  }
 }
