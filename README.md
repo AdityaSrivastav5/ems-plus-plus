@@ -31,7 +31,7 @@ EMS++ is a comprehensive, multi-tenant SaaS platform designed to streamline HR, 
 - **Gateway**: Apollo Federation / Schema Stitching
 - **Runtime**: Node.js & Express
 - **API**: GraphQL (Apollo Server)
-- **Database**: PostgreSQL (via Render)
+- **Database**: MongoDB (via Mongoose)
 - **Caching**: Redis (via Upstash)
 - **Monorepo Tool**: Turborepo
 
@@ -65,7 +65,7 @@ EMS++ is a comprehensive, multi-tenant SaaS platform designed to streamline HR, 
 ### Prerequisites
 - Node.js (v18+)
 - npm or pnpm
-- PostgreSQL Database
+- MongoDB (local or Atlas)
 - Redis Instance
 
 ### Installation
@@ -83,7 +83,7 @@ EMS++ is a comprehensive, multi-tenant SaaS platform designed to streamline HR, 
 
 3.  **Environment Setup**
     - Copy `.env.example` to `.env` in the root (if applicable) or ensure `@ems/config` has the correct credentials.
-    - Update `DATABASE_URL` and `REDIS_URL` in `packages/config/index.js` or your environment variables.
+    - Update `MONGODB_URI` and `REDIS_URL` in `packages/config/index.js` or your environment variables.
 
 4.  **Run Locally**
     ```bash

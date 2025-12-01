@@ -4,13 +4,13 @@ const config = require('@ems/config');
 
 const typeDefs = gql`
   type Query {
-    auth: String
+    hello: String
   }
 `;
 
 const resolvers = {
   Query: {
-    auth: () => 'Auth Service',
+    hello: () => 'Hello from Auth Service!',
   },
 };
 

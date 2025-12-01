@@ -1,6 +1,20 @@
 const express = require('express');
 const { ApolloServer, gql } = require('apollo-server-express');
+const { connectDB, mongoose } = require('@ems/shared-lib/db');
 const config = require('@ems/config');
+
+// Mongoose Schema
+const leaveRequestSchema = new mongoose.Schema({
+  employeeId: { type: String, required: true },
+  type: { type: String, required: true },
+  startDate: { type: String, required: true },
+  endDate: { type: String, required: true },
+  status: { type: String, default: 'PENDING' },
+  orgId: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const LeaveRequest = mongoose.model('LeaveRequest', leaveRequestSchema);
 
 const typeDefs = gql`
   type LeaveRequest {
@@ -24,15 +38,29 @@ const typeDefs = gql`
 
 const resolvers = {
   Query: {
-    leaveRequests: () => [],
+    leaveRequests: async (_, { employeeId }) => {
+      return await LeaveRequest.find({ employeeId });
+    },
   },
   Mutation: {
-    applyLeave: (_, { employeeId, type, startDate, endDate }) => ({ id: '1', employeeId, type, startDate, endDate, status: 'PENDING' }),
-    approveLeave: (_, { id }) => ({ id, employeeId: '1', type: 'SICK', startDate: '2023-01-01', endDate: '2023-01-02', status: 'APPROVED' }),
+    applyLeave: async (_, { employeeId, type, startDate, endDate }) => {
+      const leave = new LeaveRequest({ employeeId, type, startDate, endDate, status: 'PENDING' });
+      return await leave.save();
+    },
+    approveLeave: async (_, { id }) => {
+      const leave = await LeaveRequest.findById(id);
+      if (leave) {
+        leave.status = 'APPROVED';
+        return await leave.save();
+      }
+      return null;
+    },
   },
 };
 
 async function startServer() {
+  await connectDB();
+  
   const app = express();
   const server = new ApolloServer({ typeDefs, resolvers });
   await server.start();

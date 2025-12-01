@@ -1,6 +1,19 @@
 const express = require('express');
 const { ApolloServer, gql } = require('apollo-server-express');
+const { connectDB, mongoose } = require('@ems/shared-lib/db');
 const config = require('@ems/config');
+
+// Mongoose Schema
+const assetSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  type: { type: String, required: true },
+  serialNumber: String,
+  assignedTo: String,
+  orgId: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Asset = mongoose.model('Asset', assetSchema);
 
 const typeDefs = gql`
   type Asset {
@@ -24,19 +37,28 @@ const typeDefs = gql`
 
 const resolvers = {
   Query: {
-    assets: () => [
-      { id: '1', name: 'MacBook Pro', type: 'Laptop', serialNumber: 'MBP123', assignedTo: '1' },
-      { id: '2', name: 'Dell Monitor', type: 'Monitor', serialNumber: 'DL456', assignedTo: null },
-    ],
-    asset: (_, { id }) => ({ id, name: 'MacBook Pro', type: 'Laptop', serialNumber: 'MBP123', assignedTo: '1' }),
+    assets: async () => await Asset.find(),
+    asset: async (_, { id }) => await Asset.findById(id),
   },
   Mutation: {
-    createAsset: (_, { name, type, serialNumber }) => ({ id: '3', name, type, serialNumber, assignedTo: null }),
-    assignAsset: (_, { id, employeeId }) => ({ id, name: 'MacBook Pro', type: 'Laptop', serialNumber: 'MBP123', assignedTo: employeeId }),
+    createAsset: async (_, { name, type, serialNumber }) => {
+      const asset = new Asset({ name, type, serialNumber });
+      return await asset.save();
+    },
+    assignAsset: async (_, { id, employeeId }) => {
+      const asset = await Asset.findById(id);
+      if (asset) {
+        asset.assignedTo = employeeId;
+        return await asset.save();
+      }
+      return null;
+    },
   },
 };
 
 async function startServer() {
+  await connectDB();
+  
   const app = express();
   const server = new ApolloServer({ typeDefs, resolvers });
   await server.start();

@@ -1,6 +1,17 @@
 const express = require('express');
 const { ApolloServer, gql } = require('apollo-server-express');
+const { connectDB, mongoose } = require('@ems/shared-lib/db');
 const config = require('@ems/config');
+
+// Mongoose Schema
+const organizationSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  slug: { type: String, required: true, unique: true },
+  ownerId: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Organization = mongoose.model('Organization', organizationSchema);
 
 const typeDefs = gql`
   type Organization {
@@ -22,26 +33,24 @@ const typeDefs = gql`
 
 const resolvers = {
   Query: {
-    userOrganizations: (_, { userId }) => [
-      { id: 'org-1', name: 'Acme Corp', slug: 'acme', ownerId: userId },
-      { id: 'org-2', name: 'Beta Inc', slug: 'beta', ownerId: userId },
-    ],
-    organization: (_, { id }) => ({ id, name: 'Acme Corp', slug: 'acme', ownerId: 'mock-user-1' }),
+    userOrganizations: async (_, { userId }) => await Organization.find({ ownerId: userId }),
+    organization: async (_, { id }) => await Organization.findById(id),
   },
   Mutation: {
-    createOrganization: (_, { name, slug }, context) => {
-      // In real app, use context.userId as owner
-      return {
-        id: `org-${Date.now()}`,
+    createOrganization: async (_, { name, slug }, context) => {
+      const org = new Organization({
         name,
         slug,
-        ownerId: context.userId || 'mock-user-1',
-      };
+        ownerId: context.userId || 'mock-user-1'
+      });
+      return await org.save();
     },
   },
 };
 
 async function startServer() {
+  await connectDB();
+  
   const app = express();
   const server = new ApolloServer({ 
     typeDefs, 

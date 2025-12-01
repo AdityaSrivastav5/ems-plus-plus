@@ -1,6 +1,29 @@
 const express = require('express');
 const { ApolloServer, gql } = require('apollo-server-express');
+const { connectDB, mongoose } = require('@ems/shared-lib/db');
 const config = require('@ems/config');
+
+// Mongoose Schemas
+const payrollRunSchema = new mongoose.Schema({
+  month: { type: String, required: true },
+  year: { type: Number, required: true },
+  status: { type: String, default: 'PENDING' },
+  totalAmount: Number,
+  orgId: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const payslipSchema = new mongoose.Schema({
+  runId: { type: String, required: true },
+  employeeId: { type: String, required: true },
+  netSalary: { type: Number, required: true },
+  pdfUrl: String,
+  orgId: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const PayrollRun = mongoose.model('PayrollRun', payrollRunSchema);
+const Payslip = mongoose.model('Payslip', payslipSchema);
 
 const typeDefs = gql`
   type PayrollRun {
@@ -33,23 +56,30 @@ const typeDefs = gql`
 
 const resolvers = {
   Query: {
-    payrollRuns: () => [
-      { id: '1', month: 'November', year: 2023, status: 'COMPLETED', totalAmount: 150000 },
-      { id: '2', month: 'December', year: 2023, status: 'DRAFT', totalAmount: 0 },
-    ],
-    payrollRun: (_, { id }) => ({ id, month: 'December', year: 2023, status: 'DRAFT', totalAmount: 0 }),
-    payslips: (_, { runId }) => [
-      { id: '101', runId, employeeId: '1', netSalary: 5000, pdfUrl: '/payslips/101.pdf' },
-      { id: '102', runId, employeeId: '2', netSalary: 6000, pdfUrl: '/payslips/102.pdf' },
-    ],
+    payrollRuns: async () => await PayrollRun.find(),
+    payrollRun: async (_, { id }) => await PayrollRun.findById(id),
+    payslips: async (_, { runId }) => await Payslip.find({ runId }),
   },
   Mutation: {
-    createPayrollRun: (_, { month, year }) => ({ id: '3', month, year, status: 'DRAFT', totalAmount: 0 }),
-    finalizePayrollRun: (_, { id }) => ({ id, month: 'December', year: 2023, status: 'COMPLETED', totalAmount: 160000 }),
+    createPayrollRun: async (_, { month, year }) => {
+      const run = new PayrollRun({ month, year, status: 'PENDING' });
+      return await run.save();
+    },
+    finalizePayrollRun: async (_, { id }) => {
+      const run = await PayrollRun.findById(id);
+      if (run) {
+        run.status = 'COMPLETED';
+        run.totalAmount = 100000; // Mock calculation
+        return await run.save();
+      }
+      return null;
+    },
   },
 };
 
 async function startServer() {
+  await connectDB();
+  
   const app = express();
   const server = new ApolloServer({ typeDefs, resolvers });
   await server.start();

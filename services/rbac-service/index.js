@@ -1,6 +1,17 @@
 const express = require('express');
 const { ApolloServer, gql } = require('apollo-server-express');
+const { connectDB, mongoose } = require('@ems/shared-lib/db');
 const config = require('@ems/config');
+
+// Mongoose Schemas
+const roleSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  permissions: [{ resource: String, action: String }],
+  orgId: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Role = mongoose.model('Role', roleSchema);
 
 const typeDefs = gql`
   type Permission {
@@ -33,23 +44,25 @@ const typeDefs = gql`
 
 const resolvers = {
   Query: {
-    roles: () => [
-      { id: '1', name: 'Admin', permissions: [{ id: 'p1', resource: '*', action: '*' }] },
-      { id: '2', name: 'User', permissions: [{ id: 'p2', resource: 'profile', action: 'read' }] },
-    ],
-    checkPermission: (_, { userId, resource, action }) => {
+    roles: async () => await Role.find(),
+    checkPermission: async (_, { userId, resource, action }) => {
       // Mock logic: Admin (user-1) has all permissions
       if (userId === 'mock-user-1') return true;
       return false;
     },
   },
   Mutation: {
-    createRole: (_, { name }) => ({ id: '3', name, permissions: [] }),
-    assignRole: () => true,
+    createRole: async (_, { name, permissions }) => {
+      const role = new Role({ name, permissions });
+      return await role.save();
+    },
+    assignRole: async () => true,
   },
 };
 
 async function startServer() {
+  await connectDB();
+  
   const app = express();
   const server = new ApolloServer({ typeDefs, resolvers });
   await server.start();

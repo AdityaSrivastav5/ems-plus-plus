@@ -1,6 +1,19 @@
 const express = require('express');
 const { ApolloServer, gql } = require('apollo-server-express');
+const { connectDB, mongoose } = require('@ems/shared-lib/db');
 const config = require('@ems/config');
+
+// Mongoose Schema
+const documentSchema = new mongoose.Schema({
+  ownerId: { type: String, required: true },
+  name: { type: String, required: true },
+  url: { type: String, required: true },
+  type: { type: String, required: true },
+  orgId: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Document = mongoose.model('Document', documentSchema);
 
 const typeDefs = gql`
   type Document {
@@ -22,16 +35,24 @@ const typeDefs = gql`
 
 const resolvers = {
   Query: {
-    documents: (_, { ownerId }) => [
-      { id: '1', ownerId, name: 'Contract.pdf', url: '/docs/contract.pdf', type: 'application/pdf' },
-    ],
+    documents: async (_, { ownerId }) => await Document.find({ ownerId }),
   },
   Mutation: {
-    uploadDocument: (_, { ownerId, name, type }) => ({ id: '2', ownerId, name, url: `/docs/${name}`, type }),
+    uploadDocument: async (_, { ownerId, name, type }) => {
+      const doc = new Document({
+        ownerId,
+        name,
+        type,
+        url: `https://storage.example.com/${name}` // Mock URL
+      });
+      return await doc.save();
+    },
   },
 };
 
 async function startServer() {
+  await connectDB();
+  
   const app = express();
   const server = new ApolloServer({ typeDefs, resolvers });
   await server.start();

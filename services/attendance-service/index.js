@@ -1,6 +1,20 @@
 const express = require('express');
 const { ApolloServer, gql } = require('apollo-server-express');
+const { connectDB, mongoose } = require('@ems/shared-lib/db');
 const config = require('@ems/config');
+
+// Mongoose Schema
+const attendanceSchema = new mongoose.Schema({
+  employeeId: { type: String, required: true },
+  date: { type: String, required: true },
+  checkIn: String,
+  checkOut: String,
+  status: { type: String, default: 'PRESENT' },
+  orgId: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Attendance = mongoose.model('Attendance', attendanceSchema);
 
 const typeDefs = gql`
   type Attendance {
@@ -24,15 +38,36 @@ const typeDefs = gql`
 
 const resolvers = {
   Query: {
-    attendance: () => null,
+    attendance: async (_, { employeeId, date }) => {
+      return await Attendance.findOne({ employeeId, date });
+    },
   },
   Mutation: {
-    checkIn: (_, { employeeId }) => ({ id: '1', employeeId, date: new Date().toISOString(), checkIn: new Date().toISOString(), status: 'PRESENT' }),
-    checkOut: (_, { employeeId }) => ({ id: '1', employeeId, date: new Date().toISOString(), checkOut: new Date().toISOString(), status: 'PRESENT' }),
+    checkIn: async (_, { employeeId }) => {
+      const today = new Date().toISOString().split('T')[0];
+      const attendance = new Attendance({
+        employeeId,
+        date: today,
+        checkIn: new Date().toISOString(),
+        status: 'PRESENT'
+      });
+      return await attendance.save();
+    },
+    checkOut: async (_, { employeeId }) => {
+      const today = new Date().toISOString().split('T')[0];
+      const attendance = await Attendance.findOne({ employeeId, date: today });
+      if (attendance) {
+        attendance.checkOut = new Date().toISOString();
+        return await attendance.save();
+      }
+      return null;
+    },
   },
 };
 
 async function startServer() {
+  await connectDB();
+  
   const app = express();
   const server = new ApolloServer({ typeDefs, resolvers });
   await server.start();

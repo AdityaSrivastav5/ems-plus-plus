@@ -1,6 +1,18 @@
 const express = require('express');
 const { ApolloServer, gql } = require('apollo-server-express');
+const { connectDB, mongoose } = require('@ems/shared-lib/db');
 const config = require('@ems/config');
+
+// Mongoose Schema
+const notificationSchema = new mongoose.Schema({
+  userId: { type: String, required: true },
+  message: { type: String, required: true },
+  read: { type: Boolean, default: false },
+  orgId: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Notification = mongoose.model('Notification', notificationSchema);
 
 const typeDefs = gql`
   type Notification {
@@ -23,17 +35,27 @@ const typeDefs = gql`
 
 const resolvers = {
   Query: {
-    notifications: (_, { userId }) => [
-      { id: '1', userId, message: 'Welcome to EMS++', read: false, createdAt: new Date().toISOString() },
-    ],
+    notifications: async (_, { userId }) => await Notification.find({ userId }),
   },
   Mutation: {
-    markAsRead: (_, { id }) => ({ id, userId: '1', message: 'Welcome to EMS++', read: true, createdAt: new Date().toISOString() }),
-    sendNotification: (_, { userId, message }) => ({ id: '2', userId, message, read: false, createdAt: new Date().toISOString() }),
+    markAsRead: async (_, { id }) => {
+      const notification = await Notification.findById(id);
+      if (notification) {
+        notification.read = true;
+        return await notification.save();
+      }
+      return null;
+    },
+    sendNotification: async (_, { userId, message }) => {
+      const notification = new Notification({ userId, message });
+      return await notification.save();
+    },
   },
 };
 
 async function startServer() {
+  await connectDB();
+  
   const app = express();
   const server = new ApolloServer({ typeDefs, resolvers });
   await server.start();

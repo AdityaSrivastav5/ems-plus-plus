@@ -1,6 +1,39 @@
 const express = require('express');
 const { ApolloServer, gql } = require('apollo-server-express');
+const { connectDB, mongoose } = require('@ems/shared-lib/db');
 const config = require('@ems/config');
+
+// Mongoose Schemas
+const leadSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true },
+  status: { type: String, default: 'NEW' },
+  source: String,
+  orgId: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const dealSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  value: { type: Number, required: true },
+  stage: { type: String, required: true },
+  closeDate: String,
+  orgId: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const contactSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true },
+  phone: String,
+  companyId: String,
+  orgId: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Lead = mongoose.model('Lead', leadSchema);
+const Deal = mongoose.model('Deal', dealSchema);
+const Contact = mongoose.model('Contact', contactSchema);
 
 const typeDefs = gql`
   type Lead {
@@ -43,28 +76,37 @@ const typeDefs = gql`
 
 const resolvers = {
   Query: {
-    leads: () => [
-      { id: '1', name: 'Acme Corp', email: 'contact@acme.com', status: 'NEW', source: 'Website' },
-      { id: '2', name: 'Globex', email: 'info@globex.com', status: 'CONTACTED', source: 'Referral' },
-    ],
-    deals: () => [
-      { id: '1', title: 'Acme Contract', value: 50000, stage: 'PROPOSAL', closeDate: '2023-12-31' },
-      { id: '2', title: 'Globex Renewal', value: 12000, stage: 'NEGOTIATION', closeDate: '2023-11-15' },
-    ],
-    contacts: () => [
-      { id: '1', name: 'Alice Smith', email: 'alice@acme.com', phone: '555-0101' },
-      { id: '2', name: 'Bob Jones', email: 'bob@globex.com', phone: '555-0102' },
-    ],
+    leads: async () => await Lead.find(),
+    deals: async () => await Deal.find(),
+    contacts: async () => await Contact.find(),
   },
   Mutation: {
-    createLead: (_, { name, email, source }) => ({ id: '3', name, email, status: 'NEW', source }),
-    createDeal: (_, { title, value, stage }) => ({ id: '3', title, value, stage, closeDate: null }),
-    createContact: (_, { name, email, phone }) => ({ id: '3', name, email, phone }),
-    updateDealStage: (_, { id, stage }) => ({ id, title: 'Updated Deal', value: 0, stage, closeDate: null }),
+    createLead: async (_, { name, email, source }) => {
+      const lead = new Lead({ name, email, source, status: 'NEW' });
+      return await lead.save();
+    },
+    createDeal: async (_, { title, value, stage }) => {
+      const deal = new Deal({ title, value, stage });
+      return await deal.save();
+    },
+    createContact: async (_, { name, email, phone }) => {
+      const contact = new Contact({ name, email, phone });
+      return await contact.save();
+    },
+    updateDealStage: async (_, { id, stage }) => {
+      const deal = await Deal.findById(id);
+      if (deal) {
+        deal.stage = stage;
+        return await deal.save();
+      }
+      return null;
+    },
   },
 };
 
 async function startServer() {
+  await connectDB();
+  
   const app = express();
   const server = new ApolloServer({ typeDefs, resolvers });
   await server.start();
