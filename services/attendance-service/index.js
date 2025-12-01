@@ -5,63 +5,127 @@ const config = require('@ems/config');
 
 // Mongoose Schema
 const attendanceSchema = new mongoose.Schema({
-  employeeId: { type: String, required: true },
-  date: { type: String, required: true },
-  checkIn: String,
-  checkOut: String,
-  status: { type: String, default: 'PRESENT' },
-  orgId: String,
+  userId: { type: String, required: true },
+  date: { type: Date, required: true },
+  checkIn: Date,
+  checkOut: Date,
+  status: { type: String, default: 'present' }, // present, absent, leave
+  orgId: { type: String, required: true },
   createdAt: { type: Date, default: Date.now }
 });
+
+// Compound index to ensure one record per user per day
+attendanceSchema.index({ userId: 1, date: 1 }, { unique: true });
 
 const Attendance = mongoose.model('Attendance', attendanceSchema);
 
 const typeDefs = gql`
+  scalar Date
+
   type Attendance {
     id: ID!
-    employeeId: ID!
+    userId: String!
     date: String!
     checkIn: String
     checkOut: String
-    status: String
+    status: String!
+    createdAt: String
   }
 
   type Query {
-    attendance(employeeId: ID!, date: String!): Attendance
+    myAttendance(startDate: String, endDate: String): [Attendance!]!
+    todayAttendance: Attendance
   }
 
   type Mutation {
-    checkIn(employeeId: ID!): Attendance
-    checkOut(employeeId: ID!): Attendance
+    clockIn: Attendance!
+    clockOut: Attendance!
   }
 `;
 
 const resolvers = {
   Query: {
-    attendance: async (_, { employeeId, date }) => {
-      return await Attendance.findOne({ employeeId, date });
+    myAttendance: async (_, { startDate, endDate }, context) => {
+      if (!context.userId) throw new Error('Unauthorized');
+      
+      const query = { 
+        userId: context.userId,
+        orgId: context.orgId 
+      };
+      
+      if (startDate && endDate) {
+        query.date = { 
+          $gte: new Date(startDate), 
+          $lte: new Date(endDate) 
+        };
+      }
+      
+      return await Attendance.find(query).sort({ date: -1 });
     },
-  },
-  Mutation: {
-    checkIn: async (_, { employeeId }) => {
-      const today = new Date().toISOString().split('T')[0];
-      const attendance = new Attendance({
-        employeeId,
-        date: today,
-        checkIn: new Date().toISOString(),
-        status: 'PRESENT'
+    
+    todayAttendance: async (_, __, context) => {
+      if (!context.userId) throw new Error('Unauthorized');
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      return await Attendance.findOne({ 
+        userId: context.userId,
+        date: today 
       });
+    }
+  },
+  
+  Mutation: {
+    clockIn: async (_, __, context) => {
+      if (!context.userId) throw new Error('Unauthorized');
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Check if already clocked in
+      const existing = await Attendance.findOne({
+        userId: context.userId,
+        date: today
+      });
+      
+      if (existing) {
+        throw new Error('Already clocked in for today');
+      }
+      
+      const attendance = new Attendance({
+        userId: context.userId,
+        date: today,
+        checkIn: new Date(),
+        status: 'present',
+        orgId: context.orgId
+      });
+      
       return await attendance.save();
     },
-    checkOut: async (_, { employeeId }) => {
-      const today = new Date().toISOString().split('T')[0];
-      const attendance = await Attendance.findOne({ employeeId, date: today });
-      if (attendance) {
-        attendance.checkOut = new Date().toISOString();
-        return await attendance.save();
+    
+    clockOut: async (_, __, context) => {
+      if (!context.userId) throw new Error('Unauthorized');
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const attendance = await Attendance.findOne({
+        userId: context.userId,
+        date: today
+      });
+      
+      if (!attendance) {
+        throw new Error('No attendance record found for today');
       }
-      return null;
-    },
+      
+      if (attendance.checkOut) {
+        throw new Error('Already clocked out');
+      }
+      
+      attendance.checkOut = new Date();
+      return await attendance.save();
+    }
   },
 };
 
@@ -69,7 +133,16 @@ async function startServer() {
   await connectDB();
   
   const app = express();
-  const server = new ApolloServer({ typeDefs, resolvers });
+  const server = new ApolloServer({ 
+    typeDefs, 
+    resolvers,
+    context: ({ req }) => {
+      const userId = req.headers['x-user-id'];
+      const orgId = req.headers['x-org-id'] || 'org-1';
+      return { userId, orgId };
+    }
+  });
+  
   await server.start();
   server.applyMiddleware({ app });
 

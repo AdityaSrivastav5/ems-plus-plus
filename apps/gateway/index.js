@@ -13,6 +13,7 @@ async function makeGatewaySchema() {
     { name: 'employee', url: 'http://localhost:4004/graphql' },
     { name: 'crm', url: 'http://localhost:4007/graphql' },
     { name: 'task', url: 'http://localhost:4008/graphql' },
+    { name: 'attendance', url: 'http://localhost:4005/graphql' },
   ];
 
   // Load remote schemas
