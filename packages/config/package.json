@@ -1,0 +1,9 @@
+{
+    "name": "@ems/config",
+    "version": "0.0.0",
+    "main": "./index.js",
+    "types": "./index.d.ts",
+    "dependencies": {
+        "dotenv": "^16.0.0"
+    }
+}

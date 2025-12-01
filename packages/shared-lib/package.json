@@ -1,0 +1,11 @@
+{
+    "name": "@ems/shared-lib",
+    "version": "0.0.0",
+    "main": "./index.js",
+    "types": "./index.d.ts",
+    "dependencies": {
+        "date-fns": "^2.0.0",
+        "ioredis": "^5.8.2",
+        "pg": "^8.16.3"
+    }
+}
